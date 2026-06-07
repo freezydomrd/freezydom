@@ -1,125 +1,207 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { EMPRESA } from '../../lib/constants'
 
 const NAV = [
-  { to: '/admin',            icono: '📊', label: 'Dashboard',    exact: true },
-  { to: '/admin/clientes',   icono: '👥', label: 'Clientes' },
+  { to: '/admin',             icono: '📊', label: 'Dashboard',    exact: true },
   { to: '/admin/cotizaciones',icono: '📋', label: 'Cotizaciones' },
-  { to: '/admin/equipos',    icono: '❄️', label: 'Equipos' },
-  { to: '/admin/servicios',  icono: '🔧', label: 'Servicios' },
-  { to: '/admin/materiales', icono: '📦', label: 'Materiales' },
-  { to: '/admin/precios',    icono: '💰', label: 'Precios' },
-  { to: '/admin/usuarios',   icono: '👤', label: 'Usuarios' },
+  { to: '/admin/clientes',    icono: '👥', label: 'Clientes' },
+  { to: '/admin/equipos',     icono: '❄️', label: 'Equipos' },
+  { to: '/admin/servicios',   icono: '🔧', label: 'Servicios' },
+  { to: '/admin/materiales',  icono: '📦', label: 'Materiales' },
+  { to: '/admin/precios',     icono: '💰', label: 'Precios' },
+  { to: '/admin/usuarios',    icono: '👤', label: 'Usuarios' },
 ]
 
 export default function AdminLayout() {
   const { perfil, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [menuAbierto, setMenuAbierto] = useState(false)
+  const [esMobil, setEsMobil] = useState(window.innerWidth < 768)
+
+  useEffect(() => {
+    const handler = () => setEsMobil(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
+  // Cerrar menú al cambiar de página en móvil
+  useEffect(() => {
+    if (esMobil) setMenuAbierto(false)
+  }, [location.pathname])
 
   async function handleLogout() {
     await logout()
     navigate('/login')
   }
 
-  const s = {
-    wrap: { display: 'flex', minHeight: '100vh', background: 'var(--fd-fondo)', fontFamily: 'Arial, sans-serif' },
-    sidebar: {
-      width: 220, background: 'var(--fd-azul)', display: 'flex', flexDirection: 'column',
-      position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 100,
-      transition: 'transform 0.25s ease',
-    },
-    sidebarMobile: { transform: menuAbierto ? 'translateX(0)' : 'translateX(-100%)' },
-    logo: { padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.12)' },
-    logoNombre: { fontSize: 20, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 },
-    logoSlogan: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-    nav: { flex: 1, padding: '12px 0', overflowY: 'auto' },
-    navLink: {
-      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
-      color: 'rgba(255,255,255,0.8)', textDecoration: 'none', fontSize: 14,
-      transition: 'background 0.15s', borderRadius: 0,
-    },
-    navLinkActive: { background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600 },
-    usuario: { padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.12)' },
-    usuarioNombre: { fontSize: 13, color: '#fff', fontWeight: 500, marginBottom: 2 },
-    usuarioRol: { fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 },
-    btnLogout: {
-      marginTop: 8, width: '100%', padding: '7px 0', background: 'rgba(255,255,255,0.1)',
-      color: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13,
-    },
-    main: { marginLeft: 220, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' },
-    topbar: {
-      background: '#fff', borderBottom: '1px solid var(--fd-borde)', padding: '0 20px',
-      height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      position: 'sticky', top: 0, zIndex: 50,
-    },
-    menuBtn: { display: 'none', background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--fd-azul)' },
-    content: { flex: 1, padding: '24px 20px', maxWidth: 1200, width: '100%', margin: '0 auto' },
-    overlay: {
-      display: menuAbierto ? 'block' : 'none',
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99,
-    },
-  }
+  // Título de la página actual
+  const paginaActual = NAV.find(n => 
+    n.exact ? location.pathname === n.to : location.pathname.startsWith(n.to)
+  )
 
   return (
-    <div style={s.wrap}>
-      {/* Overlay móvil */}
-      <div style={s.overlay} onClick={() => setMenuAbierto(false)} />
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--fd-fondo)', fontFamily: 'Arial, sans-serif' }}>
 
-      {/* Sidebar */}
-      <aside style={{ ...s.sidebar, ...(window.innerWidth < 768 ? s.sidebarMobile : {}) }}>
-        <div style={s.logo}>
-          <div style={s.logoNombre}><span>❄️</span>{EMPRESA.nombre}</div>
-          <div style={s.logoSlogan}>{EMPRESA.slogan}</div>
+      {/* OVERLAY móvil */}
+      {esMobil && menuAbierto && (
+        <div onClick={() => setMenuAbierto(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
+      )}
+
+      {/* SIDEBAR */}
+      <aside style={{
+        width: 240,
+        background: 'var(--fd-azul)',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'fixed',
+        top: 0, left: 0,
+        height: '100vh',
+        zIndex: 300,
+        transition: 'transform 0.28s cubic-bezier(.4,0,.2,1)',
+        transform: esMobil && !menuAbierto ? 'translateX(-100%)' : 'translateX(0)',
+        boxShadow: menuAbierto ? '4px 0 24px rgba(0,0,0,0.25)' : 'none',
+        overflowY: 'auto',
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid rgba(255,255,255,0.12)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 28 }}>❄️</span>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{EMPRESA.nombre}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 }}>{EMPRESA.slogan}</div>
+            </div>
+          </div>
         </div>
 
-        <nav style={s.nav}>
+        {/* Navegación */}
+        <nav style={{ flex: 1, padding: '10px 0' }}>
           {NAV.map(({ to, icono, label, exact }) => (
-            <NavLink
-              key={to} to={to} end={exact}
-              style={({ isActive }) => ({ ...s.navLink, ...(isActive ? s.navLinkActive : {}) })}
-              onClick={() => setMenuAbierto(false)}
-            >
-              <span style={{ fontSize: 16 }}>{icono}</span>
+            <NavLink key={to} to={to} end={exact}
+              style={({ isActive }) => ({
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 18px', color: isActive ? '#fff' : 'rgba(255,255,255,0.75)',
+                textDecoration: 'none', fontSize: 15,
+                background: isActive ? 'rgba(255,255,255,0.18)' : 'transparent',
+                borderLeft: isActive ? '3px solid #fff' : '3px solid transparent',
+                fontWeight: isActive ? 600 : 400,
+                transition: 'all 0.15s',
+              })}>
+              <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{icono}</span>
               <span>{label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div style={s.usuario}>
-          <div style={s.usuarioNombre}>{perfil?.nombre}</div>
-          <div style={s.usuarioRol}>{perfil?.rol}</div>
-          <button style={s.btnLogout} onClick={handleLogout}>Cerrar sesión</button>
+        {/* Usuario */}
+        <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.12)', flexShrink: 0 }}>
+          <div style={{ fontSize: 14, color: '#fff', fontWeight: 600, marginBottom: 2 }}>{perfil?.nombre}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Administrador</div>
+          <button onClick={handleLogout}
+            style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
-      {/* Contenido principal */}
-      <div style={s.main}>
-        <header style={s.topbar}>
-          <button style={{ ...s.menuBtn, display: 'flex' }} onClick={() => setMenuAbierto(v => !v)}>
-            ☰
-          </button>
-          <div style={{ fontSize: 13, color: 'var(--fd-texto-muted)' }}>
-            {EMPRESA.ciudad} · {EMPRESA.whatsappDisplay}
-          </div>
+      {/* CONTENIDO PRINCIPAL */}
+      <div style={{
+        flex: 1,
+        marginLeft: esMobil ? 0 : 240,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        transition: 'margin-left 0.28s',
+        minWidth: 0,
+      }}>
+        {/* TOPBAR */}
+        <header style={{
+          background: '#fff',
+          borderBottom: '1px solid var(--fd-borde)',
+          height: 56,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 16px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          gap: 12,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        }}>
+          {/* Botón hamburguesa - solo móvil */}
+          {esMobil && (
+            <button onClick={() => setMenuAbierto(v => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+              <span style={{ display: 'block', width: 22, height: 2, background: 'var(--fd-azul)', borderRadius: 2 }} />
+              <span style={{ display: 'block', width: 22, height: 2, background: 'var(--fd-azul)', borderRadius: 2 }} />
+              <span style={{ display: 'block', width: 22, height: 2, background: 'var(--fd-azul)', borderRadius: 2 }} />
+            </button>
+          )}
+
+          {/* Título página actual en móvil */}
+          {esMobil && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+              <span style={{ fontSize: 18 }}>{paginaActual?.icono}</span>
+              <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--fd-texto)' }}>{paginaActual?.label}</span>
+            </div>
+          )}
+
+          {/* Info empresa en desktop */}
+          {!esMobil && (
+            <div style={{ flex: 1, fontSize: 13, color: 'var(--fd-texto-muted)' }}>
+              {EMPRESA.ciudad} · {EMPRESA.whatsappDisplay}
+            </div>
+          )}
+
+          {/* Logo compacto en móvil */}
+          {esMobil && (
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fd-azul)' }}>❄️ {EMPRESA.nombre}</div>
+          )}
         </header>
-        <main style={s.content}>
+
+        {/* PÁGINA */}
+        <main style={{
+          flex: 1,
+          padding: esMobil ? '16px 12px' : '24px 24px',
+          maxWidth: 1200,
+          width: '100%',
+          margin: '0 auto',
+          boxSizing: 'border-box',
+        }}>
           <Outlet />
         </main>
+
+        {/* BOTTOM NAV - solo móvil */}
+        {esMobil && (
+          <nav style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            background: '#fff', borderTop: '1px solid var(--fd-borde)',
+            display: 'flex', zIndex: 100,
+            boxShadow: '0 -2px 12px rgba(0,0,0,0.08)',
+          }}>
+            {NAV.slice(0, 5).map(({ to, icono, label, exact }) => (
+              <NavLink key={to} to={to} end={exact}
+                style={({ isActive }) => ({
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  padding: '8px 4px', textDecoration: 'none',
+                  color: isActive ? 'var(--fd-azul)' : 'var(--fd-texto-muted)',
+                  fontSize: 10, fontWeight: isActive ? 600 : 400,
+                  gap: 3, borderTop: isActive ? '2px solid var(--fd-azul)' : '2px solid transparent',
+                })}>
+                <span style={{ fontSize: 20 }}>{icono}</span>
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </div>
 
-      <style>{`
-        @media (min-width: 768px) {
-          aside { transform: translateX(0) !important; }
-          .menu-btn { display: none !important; }
-        }
-        @media (max-width: 767px) {
-          aside { transform: ${menuAbierto ? 'translateX(0)' : 'translateX(-100%)'}; }
-          [data-main] { margin-left: 0 !important; }
-        }
-      `}</style>
+      {/* Espacio para bottom nav en móvil */}
+      {esMobil && <div style={{ height: 60 }} />}
     </div>
   )
 }
